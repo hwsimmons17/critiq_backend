@@ -5,21 +5,12 @@ mod routes;
 
 use std::net::SocketAddr;
 
-use app_state::AppState;
-use axum::{
-    http::{HeaderMap, StatusCode},
-    Json, Router,
-};
+use axum::Router;
 use repository::user::UserRepository;
 use router::create_router;
 
-pub struct App<U: UserRepository> {
-    router: Router,
-    user_repo: U,
-}
-
-pub async fn run<U: UserRepository>(app_state: AppState<U>) {
-    let app = create_router(app_state);
+pub async fn run<U: UserRepository>(user_repo: U) {
+    let app = create_router(user_repo);
     let address = SocketAddr::from(([0, 0, 0, 0], 8080));
 
     axum::Server::bind(&address)

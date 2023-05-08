@@ -1,6 +1,4 @@
-use crate::repository::user::UserRepository;
-
 #[derive(Clone)]
-pub struct AppState<U: UserRepository> {
-    pub user_repo: U,
+pub struct AppState {
+    pub user_repo: String,
 }

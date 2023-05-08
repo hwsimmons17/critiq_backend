@@ -1,23 +1,23 @@
 use crate::repository::user::{User, UserRepository};
 
 #[derive(Clone)]
-pub struct LocalUserRepository<'a> {
-    users: Vec<User<'a>>,
+pub struct LocalUserRepository {
+    users: Vec<User>,
 }
 
-impl LocalUserRepository<'_> {
-    pub fn new() -> LocalUserRepository<'static> {
+impl LocalUserRepository {
+    pub fn new() -> LocalUserRepository {
         return LocalUserRepository { users: Vec::new() };
     }
 }
 
-impl UserRepository for LocalUserRepository<'static> {
-    fn create<'a, 'b>(&mut self, user: User<'static>) -> Result<User<'a>, &'b str> {
+impl UserRepository for LocalUserRepository {
+    fn create(&mut self, user: User) -> Result<User, String> {
         self.users.push(user.clone());
         Ok(user)
     }
 
-    fn read<'a, 'b>(&self, phone_number: u64) -> Result<Vec<User<'a>>, &'b str> {
+    fn read(&self, phone_number: u64) -> Result<Vec<User>, String> {
         Ok(self
             .users
             .clone()
@@ -26,7 +26,7 @@ impl UserRepository for LocalUserRepository<'static> {
             .collect())
     }
 
-    fn update<'a, 'b>(&mut self, user: User<'static>) -> Result<User<'a>, &'b str> {
+    fn update(&mut self, user: User) -> Result<User, String> {
         self.users = self
             .users
             .clone()
@@ -41,7 +41,7 @@ impl UserRepository for LocalUserRepository<'static> {
         Ok(user)
     }
 
-    fn delete<'a>(&mut self, phone_number: u64) -> Result<Option<User<'a>>, &'a str> {
+    fn delete<'a>(&mut self, phone_number: u64) -> Result<Option<User>, String> {
         let mut user: Option<User> = None;
         self.users = self
             .users
