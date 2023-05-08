@@ -5,7 +5,6 @@ mod routes;
 
 use std::net::SocketAddr;
 
-use axum::Router;
 use repository::user::UserRepository;
 use router::create_router;
 

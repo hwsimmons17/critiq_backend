@@ -1,11 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    app_state::AppState,
-    repository::{
-        local::user,
-        user::{DynUserRepo, UserRepository},
-    },
+    repository::user::{DynUserRepo, UserRepository},
     routes::auth::{authenticate, handler, verify_phone},
 };
 use axum::{

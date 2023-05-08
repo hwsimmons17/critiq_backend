@@ -148,6 +148,18 @@ fn validate_phone_number(phone_number: &str) -> Result<u64, String> {
     Ok(numbers.iter().fold(0, |acc, elem| acc * 10 + *elem as u64))
 }
 
-pub async fn verify_phone() -> StatusCode {
-    StatusCode::OK
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TokenResponse {
+    access_token: String,
+    refresh_token: String,
+    token_type: String,
+}
+
+pub async fn verify_phone() -> Result<Json<TokenResponse>, (StatusCode, String)> {
+    Ok(Json(TokenResponse {
+        access_token: "".to_string(),
+        refresh_token: "".to_string(),
+        token_type: "".to_string(),
+    }))
 }

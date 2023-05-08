@@ -1,4 +1,4 @@
-use critiq_backend::{app_state::AppState, repository::local::user::LocalUserRepository, run};
+use critiq_backend::{repository::local::user::LocalUserRepository, run};
 
 #[tokio::main]
 async fn main() {
