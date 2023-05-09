@@ -136,33 +136,3 @@ impl VerificationCode for u32 {
         self.to_string()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::sms::SMSVerify;
-
-    #[tokio::test]
-    async fn test_send_verification_code() {
-        let twilio_sms = TwilioSMS::new(
-            "ACad6d83ed33e323da8f9713578aa7581d",
-            "VA2ad3f46d9de8aec5442fdf86540a96db",
-            "d7f58d7ec89e0eb3ea2f604d4e0ad960",
-        );
-
-        let res = twilio_sms.send_verification_code(2028098680).await;
-        assert_eq!(res, Ok(()))
-    }
-
-    #[tokio::test]
-    async fn test_verify_code() {
-        let twilio_sms = TwilioSMS::new(
-            "ACad6d83ed33e323da8f9713578aa7581d",
-            "VA2ad3f46d9de8aec5442fdf86540a96db",
-            "d7f58d7ec89e0eb3ea2f604d4e0ad960",
-        );
-
-        let res = twilio_sms.verify_code(2028098680, 06329).await;
-        assert_eq!(res, Ok(()))
-    }
-}
