@@ -65,12 +65,18 @@ pub async fn authenticate(
         Err(e) => return Err((StatusCode::BAD_REQUEST, e)),
     };
 
-    match app_state.user_repo.lock().await.create(User {
-        first_name,
-        last_name,
-        phone_number,
-        is_verified: false,
-    }) {
+    match app_state
+        .user_repo
+        .lock()
+        .await
+        .create(User {
+            first_name,
+            last_name,
+            phone_number,
+            is_verified: false,
+        })
+        .await
+    {
         Ok(_) => {}
         Err(_) => {
             return Err((
@@ -104,7 +110,7 @@ pub async fn verify_phone(
     };
 
     let mut user: User;
-    match app_state.user_repo.lock().await.read(phone_number) {
+    match app_state.user_repo.lock().await.read(phone_number).await {
         Ok(u) => {
             if u.len() == 0 {
                 return Err((StatusCode::BAD_REQUEST, "No user saved".to_string()));
@@ -117,11 +123,12 @@ pub async fn verify_phone(
             }
             user = u[0].clone();
         }
-        Err(_) => {
+        Err(e) => {
+            println!("{}", e);
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal Server Error".to_string(),
-            ))
+            ));
         }
     }
 
@@ -131,16 +138,20 @@ pub async fn verify_phone(
         .await
     {
         Ok(_) => {}
-        Err(e) => return Err((StatusCode::BAD_REQUEST, e)),
+        Err(e) => {
+            println!("{}", e);
+            return Err((StatusCode::BAD_REQUEST, e));
+        }
     }
     user.is_verified = true;
-    match app_state.user_repo.lock().await.update(user.clone()) {
+    match app_state.user_repo.lock().await.update(user.clone()).await {
         Ok(_) => {}
-        Err(_) => {
+        Err(e) => {
+            println!("{}", e);
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal Server Error".to_string(),
-            ))
+            ));
         }
     }
 
@@ -152,11 +163,12 @@ pub async fn verify_phone(
         user.is_verified,
     ) {
         Ok(token) => access_token = token,
-        Err(_) => {
+        Err(e) => {
+            println!("{}", e);
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal Server Error".to_string(),
-            ))
+            ));
         }
     };
 
@@ -168,7 +180,13 @@ pub async fn verify_phone(
         user.is_verified,
     ) {
         Ok(token) => refresh_token = token,
-        Err(_) => todo!(),
+        Err(e) => {
+            println!("{}", e);
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Internal Server Error".to_string(),
+            ));
+        }
     }
 
     Ok(Json(TokenResponse {

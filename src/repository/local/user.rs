@@ -1,3 +1,5 @@
+use axum::async_trait;
+
 use crate::repository::user::{User, UserRepository};
 
 #[derive(Clone)]
@@ -11,13 +13,14 @@ impl LocalUserRepository {
     }
 }
 
+#[async_trait]
 impl UserRepository for LocalUserRepository {
-    fn create(&mut self, user: User) -> Result<User, String> {
+    async fn create(&mut self, user: User) -> Result<User, String> {
         self.users.push(user.clone());
         Ok(user)
     }
 
-    fn read(&self, phone_number: u64) -> Result<Vec<User>, String> {
+    async fn read(&self, phone_number: u64) -> Result<Vec<User>, String> {
         Ok(self
             .users
             .clone()
@@ -26,7 +29,7 @@ impl UserRepository for LocalUserRepository {
             .collect())
     }
 
-    fn update(&mut self, user: User) -> Result<User, String> {
+    async fn update(&mut self, user: User) -> Result<User, String> {
         self.users = self
             .users
             .clone()
@@ -41,7 +44,7 @@ impl UserRepository for LocalUserRepository {
         Ok(user)
     }
 
-    fn delete<'a>(&mut self, phone_number: u64) -> Result<Option<User>, String> {
+    async fn delete(&mut self, phone_number: u64) -> Result<Option<User>, String> {
         let mut user: Option<User> = None;
         self.users = self
             .users

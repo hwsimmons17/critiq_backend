@@ -105,7 +105,7 @@ impl SMSVerify for TwilioSMS {
                             Err(_) => Err("Error parsing JSON".to_string()),
                         }
                     }
-                    Err(_) => todo!(),
+                    Err(_) => Err("Error parsing JSON".to_string()),
                 }
             }
             Err(_) => Err("Error sending to Twilio".to_string()),
