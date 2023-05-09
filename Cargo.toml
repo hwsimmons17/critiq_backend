@@ -10,5 +10,14 @@ tokio = { version = "1.28.0", features = ["full","macros","rt-multi-thread"] }
 axum = {version = "0.6.18", features = ["tokio", "macros", "headers"]}
 axum-macros = "0.3.7"
 serde = { version = "1.0.106", features = ["derive"] }
+serde_json = "1.0.96"
 dotenv = "0.15.0"
 postgrest = "1.5.0"
+reqwest = "0.11.17"
+base64 = "0.21.0"
+hmac = "0.12.1"
+jwt = "0.16.0"
+sha2 = "0.10.6"
+rand = "0.8.5"
+bs58 = "0.4.0"
+chrono = "0.4.24"
