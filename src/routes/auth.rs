@@ -118,7 +118,7 @@ pub async fn verify_phone(
             }
             user = u[0].clone();
         }
-        Err(e) => {
+        Err(_) => {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal Server Error".to_string(),
@@ -139,7 +139,7 @@ pub async fn verify_phone(
     user.is_verified = true;
     match app_state.user_repo.lock().await.update(user.clone()).await {
         Ok(_) => {}
-        Err(e) => {
+        Err(_) => {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal Server Error".to_string(),
@@ -155,7 +155,7 @@ pub async fn verify_phone(
         user.is_verified,
     ) {
         Ok(token) => access_token = token,
-        Err(e) => {
+        Err(_) => {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal Server Error".to_string(),
@@ -171,7 +171,7 @@ pub async fn verify_phone(
         user.is_verified,
     ) {
         Ok(token) => refresh_token = token,
-        Err(e) => {
+        Err(_) => {
             return Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Internal Server Error".to_string(),

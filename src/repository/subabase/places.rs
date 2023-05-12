@@ -238,7 +238,7 @@ pub fn unwrap_read_places_json(
             };
             return Ok(places[0].clone().convert_to_place());
         }
-        Err(e) => Err("Error unmarshaling JSON".to_string()),
+        Err(_) => Err("Error unmarshaling JSON".to_string()),
     }
 }
 

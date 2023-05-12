@@ -16,7 +16,7 @@ use crate::{
 };
 use axum::{
     middleware,
-    routing::{get, post, put},
+    routing::{post, put},
     Router,
 };
 use tokio::sync::Mutex;

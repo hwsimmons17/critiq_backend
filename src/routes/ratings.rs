@@ -37,27 +37,34 @@ pub async fn search_for_place(
             return Err((StatusCode::INTERNAL_SERVER_ERROR, e));
         }
     };
+    let return_places = places.clone();
 
-    let results = future::try_join_all(
-        places
-            .iter()
-            .map(|place| async move { places_search.lock().await.get_photos(place.id).await }),
-    )
-    .await;
+    let places_repo = places_repo.clone();
+    let places_search = places_search.clone();
+    tokio::spawn(async move {
+        let places_repo = &places_repo;
+        let places_search = &places_search;
 
-    match results {
-        Ok(p) => {
-            let res = future::try_join_all(
-                p.iter()
-                    .map(|place| async move { places_repo.lock().await.create(place).await }),
-            )
-            .await;
+        let results = future::try_join_all(
+            places
+                .iter()
+                .map(|place| async move { places_search.lock().await.get_photos(place.id).await }),
+        )
+        .await;
 
-            match res {
-                Ok(places) => return Ok(axum::Json(SearchResponse { places })),
-                Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, e)),
+        match results {
+            Ok(p) => {
+                return future::try_join_all(
+                    p.iter()
+                        .map(|place| async move { places_repo.lock().await.create(place).await }),
+                )
+                .await;
             }
+            Err(e) => Err(e),
         }
-        Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, e)),
-    }
+    });
+
+    return Ok(axum::Json(SearchResponse {
+        places: return_places,
+    }));
 }
