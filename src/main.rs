@@ -1,7 +1,7 @@
 mod sms;
 
 use critiq_backend::{
-    oauth::OAuth, repository::subabase::user::SupabaseUserRepo, run, sms::twilio::TwilioSMS,
+    oauth::OAuth, repository::subabase::SupabaseRepo, run, sms::twilio::TwilioSMS,
 };
 
 #[tokio::main]
@@ -19,7 +19,7 @@ async fn main() {
     let supabase_api_key =
         std::env::var("SUPABASE_API_KEY").expect("SUPABASE_API_KEY must be set.");
 
-    let user_repo = SupabaseUserRepo::new(&supabase_url, &supabase_api_key);
+    let user_repo = SupabaseRepo::new(&supabase_url, &supabase_api_key);
     let sms_verify = TwilioSMS::new(&twilio_account_sid, &twilio_service_sid, &twilio_auth_token);
     let oauth = OAuth::new(&jwt_key);
 

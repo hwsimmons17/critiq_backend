@@ -4,11 +4,11 @@ use crate::{
     app_state::AppState,
     oauth::OAuth,
     repository::user::{DynUserRepo, UserRepository},
-    routes::auth::{authenticate, handler, verify_phone},
+    routes::auth::{authenticate, verify_phone},
     sms::{DynSMSVerify, SMSVerify},
 };
 use axum::{
-    routing::{get, post, put},
+    routing::{post, put},
     Router,
 };
 use tokio::sync::Mutex;
@@ -27,7 +27,6 @@ pub fn create_router<U: UserRepository, V: SMSVerify>(
     };
 
     Router::new()
-        .route("/", get(handler))
         .route("/authenticate", put(authenticate))
         .route("/verify-phone", post(verify_phone))
         .with_state(app_state)

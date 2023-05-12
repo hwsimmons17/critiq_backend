@@ -92,7 +92,6 @@ impl SMSVerify for TwilioSMS {
                 };
                 match res.text().await {
                     Ok(t) => {
-                        println!("{}", t);
                         let body: Result<VerificationCheckResponse, serde_json::Error> =
                             serde_json::from_str(&t);
                         match body {

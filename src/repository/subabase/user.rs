@@ -3,19 +3,10 @@ use reqwest::StatusCode;
 
 use crate::repository::user::{User, UserRepository};
 
-pub struct SupabaseUserRepo {
-    client: postgrest::Postgrest,
-}
-
-impl SupabaseUserRepo {
-    pub fn new(url: &str, api_key: &str) -> Self {
-        let client = postgrest::Postgrest::new(url).insert_header("apikey", api_key);
-        SupabaseUserRepo { client }
-    }
-}
+use super::SupabaseRepo;
 
 #[async_trait]
-impl UserRepository for SupabaseUserRepo {
+impl UserRepository for SupabaseRepo {
     async fn create(&mut self, user: User) -> Result<User, String> {
         match  self.client
             .from("users")
@@ -32,7 +23,10 @@ impl UserRepository for SupabaseUserRepo {
                     if r.status() == StatusCode::CREATED {
                         return Ok(user)
                     }
-                    println!("{}", r.text().await.unwrap());
+                    if r.status() == StatusCode::CONFLICT {
+                        return unwrap_read_user(self.read(user.phone_number).await);
+                    }
+            
                     return Err("User not created".to_string())
                 }
                 Err(_) => {
@@ -116,6 +110,18 @@ impl UserRepository for SupabaseUserRepo {
     }
 }
 
+fn unwrap_read_user(res: Result<Vec<User>, String>) -> Result<User, String> {
+    match res {
+        Ok(users) => {
+            if users.len() == 0 {
+                return Err("Expected len of users to be greater than 0".to_string());
+            }
+            return Ok(users[0].clone());
+        }
+        Err(e) => Err(e),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -126,7 +132,7 @@ mod tests {
         let supabase_url = std::env::var("SUPABASE_URL").expect("SUPABASE_URL must be set.");
         let supabase_api_key =
             std::env::var("SUPABASE_API_KEY").expect("SUPABASE_API_KEY must be set.");
-        let mut user_repo = SupabaseUserRepo::new(&supabase_url, &supabase_api_key);
+        let mut user_repo = SupabaseRepo::new(&supabase_url, &supabase_api_key);
 
         user_repo
             .create(User {
@@ -147,7 +153,7 @@ mod tests {
         let supabase_api_key =
             std::env::var("SUPABASE_API_KEY").expect("SUPABASE_API_KEY must be set.");
 
-        let user_repo = SupabaseUserRepo::new(&supabase_url, &supabase_api_key);
+        let user_repo = SupabaseRepo::new(&supabase_url, &supabase_api_key);
 
         let users = user_repo.read(2028098681).await.unwrap();
         assert_eq!(
@@ -167,7 +173,7 @@ mod tests {
         let supabase_url = std::env::var("SUPABASE_URL").expect("SUPABASE_URL must be set.");
         let supabase_api_key =
             std::env::var("SUPABASE_API_KEY").expect("SUPABASE_API_KEY must be set.");
-        let mut user_repo = SupabaseUserRepo::new(&supabase_url, &supabase_api_key);
+        let mut user_repo = SupabaseRepo::new(&supabase_url, &supabase_api_key);
 
         user_repo
             .update(User {
@@ -197,7 +203,7 @@ mod tests {
         let supabase_url = std::env::var("SUPABASE_URL").expect("SUPABASE_URL must be set.");
         let supabase_api_key =
             std::env::var("SUPABASE_API_KEY").expect("SUPABASE_API_KEY must be set.");
-        let mut user_repo = SupabaseUserRepo::new(&supabase_url, &supabase_api_key);
+        let mut user_repo = SupabaseRepo::new(&supabase_url, &supabase_api_key);
 
         let deleted_user = user_repo.delete(2028098681).await.unwrap().unwrap();
         assert_eq!(

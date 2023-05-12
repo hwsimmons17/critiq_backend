@@ -1,5 +1,7 @@
 pub mod app_state;
+pub mod geo;
 pub mod oauth;
+pub mod places;
 pub mod repository;
 mod router;
 mod routes;

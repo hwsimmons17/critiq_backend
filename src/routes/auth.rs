@@ -1,17 +1,9 @@
-use axum::{
-    extract::State,
-    http::{HeaderMap, StatusCode},
-    Json,
-};
+use axum::{extract::State, http::StatusCode, Json};
+use serde::{Deserialize, Serialize};
 
 use crate::{app_state::AppState, repository::user::User};
 
-#[derive(serde::Serialize)]
-pub struct Message {
-    message: String,
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthenticateRequest {
     first_name: String,
@@ -19,27 +11,18 @@ pub struct AuthenticateRequest {
     phone_number: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TokenResponse {
     access_token: String,
     refresh_token: String,
-    token_type: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VerifyRequest {
     phone_number: String,
     code: u32,
-}
-
-pub async fn handler(headers: HeaderMap) -> Json<Message> {
-    let host = headers.get("host").unwrap().to_str().unwrap();
-
-    Json(Message {
-        message: host.to_string(),
-    })
 }
 
 #[axum_macros::debug_handler]
@@ -192,7 +175,6 @@ pub async fn verify_phone(
     Ok(Json(TokenResponse {
         access_token,
         refresh_token,
-        token_type: "".to_string(),
     }))
 }
 
