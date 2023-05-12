@@ -16,6 +16,11 @@ pub struct MapboxSearchApi {
 }
 
 #[derive(Deserialize, Serialize)]
+struct MapboxSuggestions {
+    suggestions: Vec<MapboxPlace>,
+}
+
+#[derive(Deserialize, Serialize)]
 struct MapboxPlace {
     mapbox_id: String,
     name: String,
@@ -28,11 +33,11 @@ struct MapboxPlace {
 
 #[derive(Deserialize, Serialize)]
 struct MapboxContext {
-    country: MapboxCountryContext,
-    region: MapboxRegionContext,
-    postcode: MapboxGenericContext,
-    place: MapboxGenericContext,
-    street: MapboxGenericContext,
+    country: Option<MapboxCountryContext>,
+    region: Option<MapboxRegionContext>,
+    postcode: Option<MapboxGenericContext>,
+    place: Option<MapboxGenericContext>,
+    street: Option<MapboxGenericContext>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -67,22 +72,39 @@ struct FoursquarePhoto {
 
 impl MapboxPlace {
     fn convert_to_place(&self) -> Place {
-        Place {
+        let mut place = Place {
             id: 0,
             name: self.name.clone(),
             address: Address {
                 address: self.address.clone(),
                 full_address: Some(self.full_address.clone()),
-                country: Some(self.context.country.name.clone()),
-                region: Some(self.context.region.name.clone()),
-                postcode: Some(self.context.postcode.name.clone()),
-                place: Some(self.context.place.name.clone()),
-                street: Some(self.context.street.name.clone()),
+                country: None,
+                region: None,
+                postcode: None,
+                place: None,
+                street: None,
             },
             photos: None,
             website: None,
             foursquare_id: self.external_ids.foursquare.clone(),
-        }
+        };
+
+        if let Some(country) = &self.context.country {
+            place.address.country = Some(country.name.clone());
+        };
+        if let Some(region) = &self.context.region {
+            place.address.region = Some(region.name.clone());
+        };
+        if let Some(postcode) = &self.context.postcode {
+            place.address.postcode = Some(postcode.name.clone());
+        };
+        if let Some(p) = &self.context.place {
+            place.address.place = Some(p.name.clone());
+        };
+        if let Some(street) = &self.context.street {
+            place.address.street = Some(street.name.clone());
+        };
+        return place;
     }
 }
 
@@ -115,25 +137,51 @@ impl Search for MapboxSearchApi {
                 "proximity",
                 &format!("{},{}", coordinates.longitude, coordinates.latitude),
             )
+            .append_pair(
+                "bbox",
+                &format!(
+                    "{},{},{},{}",
+                    coordinates.longitude - 0.5,
+                    coordinates.latitude - 0.5,
+                    coordinates.longitude + 0.5,
+                    coordinates.latitude + 0.5
+                ),
+            )
+            .append_pair("types", "poi")
+            .append_pair(
+                "origin",
+                &format!("{},{}", coordinates.longitude, coordinates.latitude),
+            )
             .append_pair("poi_category", "food");
 
         let client = reqwest::Client::new();
         match client.get(url).send().await {
             Ok(res) => {
                 if res.status() != StatusCode::OK {
+                    eprintln!("Status code from Mapbox not 200, it was: {}", res.status());
+                    eprintln!("Message for error was, {:?}", res.text().await);
                     return Err("Error requesting data from Mapbox".to_string());
                 };
                 let raw_body: String;
                 match res.text().await {
                     Ok(b) => raw_body = b,
-                    Err(_) => return Err("Error requesting data from Mapbox".to_string()),
+                    Err(e) => {
+                        eprintln!("error getting text from Mapbox res: {}", e);
+                        return Err("Error requesting data from Mapbox".to_string());
+                    }
                 }
-                let body: Result<Vec<MapboxPlace>, serde_json::Error> =
+                let body: Result<MapboxSuggestions, serde_json::Error> =
                     serde_json::from_str(&raw_body);
                 let mapbox_places: Vec<MapboxPlace>;
                 match body {
-                    Ok(p) => mapbox_places = p,
-                    Err(_) => return Err("Error requesting data from Mapbox".to_string()),
+                    Ok(p) => mapbox_places = p.suggestions,
+                    Err(e) => {
+                        eprintln!(
+                            "error unmarshalling response from Mapbox: {}. RawBody was {}",
+                            e, raw_body
+                        );
+                        return Err("Error requesting data from Mapbox".to_string());
+                    }
                 }
                 let places = future::try_join_all(mapbox_places.iter().map(|p| async move {
                     self.places_repo
@@ -146,7 +194,10 @@ impl Search for MapboxSearchApi {
 
                 return places;
             }
-            Err(_) => Err("Error requesting data from Mapbox".to_string()),
+            Err(e) => {
+                eprintln!("error sending response to Mapbox: {}", e);
+                Err("Error requesting data from Mapbox".to_string())
+            }
         }
     }
 
@@ -185,18 +236,20 @@ impl Search for MapboxSearchApi {
         url.path_segments_mut()
             .map_err(|_| "cannot be base")
             .unwrap()
-            .push(&foursquare_id);
+            .push(&foursquare_id)
+            .push("photos");
         let client = reqwest::Client::new();
         let mut foursquare_photos: Vec<FoursquarePhoto>;
         match client
             .get(url)
-            .header("Authorization:", self.foursquare_token.clone())
+            .header("Authorization", self.foursquare_token.clone())
             .header("accept", "application/json")
             .send()
             .await
         {
             Ok(res) => {
                 if res.status() != StatusCode::OK {
+                    eprintln!("Status code: {}, when getting pictures", res.status());
                     return Err("Error getting pictures".to_string());
                 }
                 match res.text().await {
@@ -205,13 +258,19 @@ impl Search for MapboxSearchApi {
                             serde_json::from_str(&t);
                         match body {
                             Ok(body) => foursquare_photos = body,
-                            Err(_) => return Err("Error parsing JSON".to_string()),
+                            Err(_) => {
+                                eprintln!("Error parsing JSON from foursquare, {}", t);
+                                return Err("Error parsing JSON".to_string());
+                            }
                         }
                     }
                     Err(_) => return Err("Error parsing JSON".to_string()),
                 }
             }
-            Err(_) => return Err("Error getting pictures".to_string()),
+            Err(e) => {
+                eprintln!("error sending to foursquare: {}", e);
+                return Err("Error getting pictures".to_string());
+            }
         };
 
         let photos = foursquare_photos

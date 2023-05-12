@@ -87,7 +87,7 @@ impl SMSVerify for TwilioSMS {
         {
             Ok(res) => {
                 if res.status() != StatusCode::OK {
-                    println!("{}", res.status());
+                    eprintln!("{}", res.status());
                     return Err("Error sending to Twillio".to_string());
                 };
                 match res.text().await {

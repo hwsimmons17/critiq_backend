@@ -73,7 +73,10 @@ impl PlacesRepository for SupabaseRepo {
                     );
                 }
 
-                println!("{}", r.text().await.unwrap());
+                eprintln!(
+                    "Status code not what was expected when creating place: {}",
+                    r.status()
+                );
                 return Err("Place not created".to_string());
             }
             Err(_) => return Err("User not created".to_string()),
@@ -122,10 +125,15 @@ impl PlacesRepository for SupabaseRepo {
                 if r.status() == StatusCode::OK {
                     return Ok(return_place);
                 }
-                println!("{}", r.text().await.unwrap());
-                return Err("User not updated".to_string());
+                eprintln!(
+                    "Expected status to be 200 when updating place, got: {}",
+                    r.status()
+                );
+                eprintln!("{:?}", r.text().await);
+                eprintln!("{}", format_create_command(&place));
+                return Err("Place not updated".to_string());
             }
-            Err(_) => return Err("User not updated".to_string()),
+            Err(_) => return Err("Place not updated".to_string()),
         }
     }
     async fn delete(&mut self, id: u64) -> Result<Option<Place>, String> {
@@ -181,24 +189,26 @@ fn format_create_command(place: &Place) -> String {
     if let Some(street) = p.address.street {
         beginning = beginning + &format!(r#"", "street": "{}"#, street)
     }
-    if let Some(photos) = p.photos {
-        beginning = beginning + &format!(r#"", "photos": "{:?}"#, photos)
-    }
     if let Some(website) = p.website {
         beginning = beginning + &format!(r#"", "website": "{}"#, website)
     }
     if let Some(foursquare_id) = p.foursquare_id {
-        beginning = beginning + &format!(r#"", "foursquareId": "{}""#, foursquare_id)
+        beginning = beginning + &format!(r#"", "foursquareId": "{}"#, foursquare_id)
     }
-    let end = r#""}]"#;
-    println!("{}", beginning.clone() + end);
+    if let Some(photos) = p.photos.clone() {
+        beginning = beginning + &format!(r#"", "photos": {:?}"#, photos)
+    }
+    let end: &str;
+    match p.photos {
+        Some(_) => end = r#"}]"#,
+        None => end = r#""}]"#,
+    };
     return beginning + &end;
 }
 
 fn parse_places(res: Result<String, reqwest::Error>) -> Result<Place, String> {
     match res {
         Ok(r) => {
-            println!("r: {}", r);
             let body: Result<Vec<RepoPlace>, serde_json::Error> = serde_json::from_str(&r);
             return unwrap_read_places_json(body);
         }
@@ -228,10 +238,7 @@ pub fn unwrap_read_places_json(
             };
             return Ok(places[0].clone().convert_to_place());
         }
-        Err(e) => {
-            println!("{}", e);
-            Err("Error unmarshaling JSON".to_string())
-        }
+        Err(e) => Err("Error unmarshaling JSON".to_string()),
     }
 }
 
@@ -288,7 +295,6 @@ mod tests {
             })
             .await
             .unwrap();
-        println!("{:?}", places[0]);
         assert_eq!(places[0].name, "Arlo".to_string())
     }
 

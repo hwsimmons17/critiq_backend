@@ -47,7 +47,7 @@ where
     };
 
     Router::new()
-        .route("/search-places", get(search_for_place))
+        .route("/search-places", post(search_for_place))
         .layer(middleware::from_fn_with_state(app_state.clone(), auth))
         .route("/authenticate", put(authenticate))
         .route("/verify-phone", post(verify_phone))

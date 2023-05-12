@@ -33,7 +33,9 @@ pub async fn search_for_place(
         .await
     {
         Ok(p) => places = p,
-        Err(e) => return Err((StatusCode::INTERNAL_SERVER_ERROR, e)),
+        Err(e) => {
+            return Err((StatusCode::INTERNAL_SERVER_ERROR, e));
+        }
     };
 
     let results = future::try_join_all(

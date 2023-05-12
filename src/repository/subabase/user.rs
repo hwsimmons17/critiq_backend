@@ -74,7 +74,6 @@ impl UserRepository for SupabaseRepo {
                 if r.status() == StatusCode::OK {
                     return Ok(user);
                 }
-                println!("{}", r.text().await.unwrap());
                 return Err("User not updated".to_string());
             }
             Err(_) => return Err("User not updated".to_string()),
