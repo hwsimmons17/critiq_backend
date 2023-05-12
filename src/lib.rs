@@ -10,12 +10,19 @@ pub mod sms;
 use std::net::SocketAddr;
 
 use oauth::OAuth;
-use repository::user::UserRepository;
+use places::search::Search;
+use repository::{places::PlacesRepository, user::UserRepository};
 use router::create_router;
 use sms::SMSVerify;
 
-pub async fn run<U: UserRepository, V: SMSVerify>(user_repo: U, sms_verify: V, oauth: OAuth) {
-    let app = create_router(user_repo, sms_verify, oauth);
+pub async fn run<U: UserRepository, P: PlacesRepository, V: SMSVerify, S: Search>(
+    user_repo: U,
+    places_repo: P,
+    sms_verify: V,
+    places_search: S,
+    oauth: OAuth,
+) {
+    let app = create_router(user_repo, places_repo, sms_verify, places_search, oauth);
     let address = SocketAddr::from(([0, 0, 0, 0], 8080));
 
     axum::Server::bind(&address)

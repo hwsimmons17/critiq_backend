@@ -2,18 +2,17 @@ use axum::async_trait;
 use futures::future;
 use reqwest::{StatusCode, Url};
 use serde::{Deserialize, Serialize};
-use tokio::sync::Mutex;
 
 use crate::{
     geo::Coordinates,
     places::{search::Search, Address, Place},
-    repository::places::{PlacesRepository, ReadPlaceOptions},
+    repository::places::{DynPlacesRepo, ReadPlaceOptions},
 };
 
 pub struct MapboxSearchApi {
     access_token: String,
     foursquare_token: String,
-    places_repo: Mutex<dyn PlacesRepository>,
+    places_repo: DynPlacesRepo,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -87,6 +86,16 @@ impl MapboxPlace {
     }
 }
 
+impl MapboxSearchApi {
+    pub fn new(access_token: &str, foursquare_token: &str, places_repo: DynPlacesRepo) -> Self {
+        MapboxSearchApi {
+            access_token: access_token.to_string(),
+            foursquare_token: foursquare_token.to_string(),
+            places_repo,
+        }
+    }
+}
+
 #[async_trait]
 impl Search for MapboxSearchApi {
     async fn search_for_place(
@@ -130,7 +139,7 @@ impl Search for MapboxSearchApi {
                     self.places_repo
                         .lock()
                         .await
-                        .create(p.convert_to_place())
+                        .create(&p.convert_to_place())
                         .await
                 }))
                 .await;

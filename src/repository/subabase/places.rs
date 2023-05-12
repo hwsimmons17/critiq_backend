@@ -49,7 +49,7 @@ impl RepoPlace {
 
 #[async_trait]
 impl PlacesRepository for SupabaseRepo {
-    async fn create(&mut self, place: Place) -> Result<Place, String> {
+    async fn create(&mut self, place: &Place) -> Result<Place, String> {
         match self
             .client
             .from("places")
@@ -66,7 +66,7 @@ impl PlacesRepository for SupabaseRepo {
                         self.read(ReadPlaceOptions {
                             id: None,
                             name: None,
-                            address: Some(place.address.address),
+                            address: Some(place.address.address.clone()),
                             postcode: None,
                         })
                         .await,
@@ -249,7 +249,7 @@ mod tests {
             std::env::var("SUPABASE_API_KEY").expect("SUPABASE_API_KEY must be set.");
         let mut repo = SupabaseRepo::new(&supabase_url, &supabase_api_key);
 
-        repo.create(Place {
+        repo.create(&Place {
             id: 0,
             name: "Arlo".to_string(),
             address: Address {

@@ -1,11 +1,16 @@
+use std::sync::Arc;
+
 use axum::async_trait;
+use tokio::sync::Mutex;
 
 use crate::geo::Coordinates;
 
 use super::Place;
 
+pub type DynPlacesSearch = Arc<Mutex<dyn Search>>;
+
 #[async_trait]
-pub trait Search {
+pub trait Search: Send + Sync + 'static {
     async fn search_for_place(
         &self,
         coordinates: Coordinates,

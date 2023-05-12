@@ -1,7 +1,13 @@
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{
+    extract::State,
+    http::{self, Request, StatusCode},
+    middleware::Next,
+    response::Response,
+    Json,
+};
 use serde::{Deserialize, Serialize};
 
-use crate::{app_state::AppState, repository::user::User};
+use crate::{app_state::AppState, oauth::OAuth, repository::user::User};
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -15,6 +21,12 @@ pub struct AuthenticateRequest {
 #[serde(rename_all = "camelCase")]
 pub struct TokenResponse {
     access_token: String,
+    refresh_token: String,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RefreshTokenRequest {
     refresh_token: String,
 }
 
@@ -178,6 +190,23 @@ pub async fn verify_phone(
     }))
 }
 
+pub async fn refresh_token(
+    State(app_state): State<AppState>,
+    Json(payload): Json<RefreshTokenRequest>,
+) -> Result<Json<TokenResponse>, (StatusCode, String)> {
+    let refresh_token = payload.refresh_token;
+    let access_token: String;
+    match app_state.oauth.refresh_token(&refresh_token) {
+        Ok(token) => access_token = token,
+        Err(_) => return Err((StatusCode::BAD_REQUEST, "Bad refresh token".to_string())),
+    }
+
+    Ok(Json(TokenResponse {
+        access_token,
+        refresh_token,
+    }))
+}
+
 fn validate_name(name: &str) -> Result<String, String> {
     let mut c = name.chars();
     match c.next() {
@@ -260,4 +289,36 @@ fn validate_phone_number(phone_number: &str) -> Result<u64, String> {
     }
 
     Ok(numbers.iter().fold(0, |acc, elem| acc * 10 + *elem as u64))
+}
+
+pub async fn auth<B>(
+    State(app_state): State<AppState>,
+    mut req: Request<B>,
+    next: Next<B>,
+) -> Result<Response, StatusCode> {
+    let auth_header = req
+        .headers()
+        .get(http::header::AUTHORIZATION)
+        .and_then(|header| header.to_str().ok());
+
+    let auth_header = if let Some(auth_header) = auth_header {
+        auth_header
+    } else {
+        return Err(StatusCode::UNAUTHORIZED);
+    };
+
+    match authorize_current_user(auth_header, app_state.oauth).await {
+        Ok(current_user) => {
+            req.extensions_mut().insert(current_user);
+            Ok(next.run(req).await)
+        }
+        Err(e) => Err(e),
+    }
+}
+
+async fn authorize_current_user(auth_header: &str, oauth: OAuth) -> Result<User, StatusCode> {
+    match oauth.verify_jwt(auth_header) {
+        Ok(u) => Ok(u),
+        Err(_) => Err(StatusCode::UNAUTHORIZED),
+    }
 }
