@@ -277,7 +277,7 @@ impl Search for MapboxSearchApi {
             .iter_mut()
             .map(|photo| {
                 photo.prefix.pop();
-                return format!("{}{}", photo.prefix, photo.suffix);
+                return format!("{}/original{}", photo.prefix, photo.suffix);
             })
             .collect();
         place.photos = Some(photos);

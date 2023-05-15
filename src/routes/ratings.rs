@@ -45,11 +45,12 @@ pub async fn search_for_place(
         let places_repo = &places_repo;
         let places_search = &places_search;
 
-        let results = future::try_join_all(
-            places
-                .iter()
-                .map(|place| async move { places_search.lock().await.get_photos(place.id).await }),
-        )
+        let results = future::try_join_all(places.iter().map(|place| async move {
+            if place.photos == None {
+                return places_search.lock().await.get_photos(place.id).await;
+            }
+            return Ok(place.clone());
+        }))
         .await;
 
         match results {
